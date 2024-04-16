@@ -16,7 +16,7 @@ import { IPluginArgs } from '../../interfaces/IPluginArgs';
 import { IDevice } from '../../interfaces/IDevice';
 import path from 'path';
 import multer from 'multer';
-import { saveTestExecutionMetaData } from '../../wdio-service/wdio-service';
+import { fetchTestExecution, saveTestExecutionMetaData } from '../../wdio-service/wdio-service';
 
 const SERVER_UP_TIME = new Date().toISOString();
 const uploadDir = path.join(__dirname);
@@ -265,7 +265,25 @@ async function handleTestExecutionMetaData(req: Request, res: Response) {
   } catch (e) {
     const response = { message: `Failed to save Test Execution Meta Data. Error: ${e}` };
     log.error('Error while handling TestExecutionMetaData.');
-    log.error(`Sending response - ${response}.`);
+    log.error(`Sending response - ${JSON.stringify(response)}.`);
+    res.status(500).json(response);
+  }
+}
+
+async function getTestExecution(req: Request, res: Response) {
+  try {
+    const buildId: string = req.query.buildid as string;
+    if (!buildId) {
+      const response = { message: 'buildId query param not present' };
+      res.status(400).json(response);
+      return;
+    }
+    const data = await fetchTestExecution(buildId);
+    res.status(200).json(data);
+  } catch (e) {
+    const response = { message: `Failed to fetch Test Execution data for build. Error: ${e}` };
+    log.error('Error while fetching Test Execution Data.');
+    log.error(`Sending response - ${JSON.stringify(response)}.`);
     res.status(500).json(response);
   }
 }
@@ -305,6 +323,7 @@ function register(router: Router, pluginArgs: IPluginArgs) {
   );
   // test execution meta data
   router.post('/handleTestExecutionMetaData', handleTestExecutionMetaData);
+  router.get('/getTestExecution', getTestExecution);
 }
 
 export default {
