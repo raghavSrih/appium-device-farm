@@ -43,7 +43,7 @@ async function saveTestExecutionMetaData(args: Request) {
   }
 }
 
-async function fetchTestExecution(buildId: string) {
+async function fetchBuildStructure(buildId: string) {
   const data = await getBuildData(buildId);
   const buildStructure: Record<string, any>[] = [];
   Object.keys(data).forEach((k) => {
@@ -95,4 +95,4 @@ function removeEventIdFromCache(obj: any, valueToRemove: string) {
   }
   return obj;
 }
-export { saveTestExecutionMetaData, fetchTestExecution, getEventId };
+export { saveTestExecutionMetaData, fetchBuildStructure, getEventId };

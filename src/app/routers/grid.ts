@@ -16,7 +16,7 @@ import { IPluginArgs } from '../../interfaces/IPluginArgs';
 import { IDevice } from '../../interfaces/IDevice';
 import path from 'path';
 import multer from 'multer';
-import { fetchTestExecution as fetchBuildExecutionData, saveTestExecutionMetaData } from '../../wdio-service/wdio-service';
+import { fetchBuildStructure, saveTestExecutionMetaData } from '../../wdio-service/wdio-service';
 
 const SERVER_UP_TIME = new Date().toISOString();
 const uploadDir = path.join(__dirname);
@@ -278,7 +278,7 @@ async function getBuildExecutionData(req: Request, res: Response) {
       res.status(400).json(response);
       return;
     }
-    const data = await fetchBuildExecutionData(buildId);
+    const data = await fetchBuildStructure(buildId);
     res.status(200).json(data);
   } catch (e) {
     const response = { message: `Failed to fetch Test Execution data for build. Error: ${e}` };
