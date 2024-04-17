@@ -16,7 +16,8 @@ import { IPluginArgs } from '../../interfaces/IPluginArgs';
 import { IDevice } from '../../interfaces/IDevice';
 import path from 'path';
 import multer from 'multer';
-import { fetchBuildStructure, saveTestExecutionMetaData } from '../../wdio-service/wdio-service';
+import { fetchBuildStructure, fetchTestExecutionData, saveTestExecutionMetaData } from '../../wdio-service/wdio-service';
+
 
 const SERVER_UP_TIME = new Date().toISOString();
 const uploadDir = path.join(__dirname);
@@ -281,12 +282,32 @@ async function getBuildExecutionData(req: Request, res: Response) {
     const data = await fetchBuildStructure(buildId);
     res.status(200).json(data);
   } catch (e) {
-    const response = { message: `Failed to fetch Test Execution data for build. Error: ${e}` };
+    const response = { message: `Failed to fetch Build Execution data. Error: ${e}` };
+    log.error('Error while fetching Build Execution Data.');
+    log.error(`Sending response - ${JSON.stringify(response)}.`);
+    res.status(500).json(response);
+  }
+}
+
+async function getTestExecutionData(req: Request, res: Response) {
+  try {
+    const testId: string = req.query.testid as string;
+    if (!testId) {
+      const response = { message: 'testId query param not present' };
+      res.status(400).json(response);
+      return;
+    }
+    const data = await fetchTestExecutionData(testId);
+    res.status(200).json(data);
+  } catch (e) {
+    const response = { message: `Failed to fetch Test Execution data. Error: ${e}` };
     log.error('Error while fetching Test Execution Data.');
     log.error(`Sending response - ${JSON.stringify(response)}.`);
     res.status(500).json(response);
   }
 }
+
+
 
 function register(router: Router, pluginArgs: IPluginArgs) {
   router.get('/device', getDevices);
@@ -324,6 +345,7 @@ function register(router: Router, pluginArgs: IPluginArgs) {
   // test execution meta data
   router.post('/handleTestExecutionMetaData', handleTestExecutionMetaData);
   router.get('/getBuild', getBuildExecutionData);
+  router.get('/getTest', getTestExecutionData);
 }
 
 export default {

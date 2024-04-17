@@ -36,6 +36,7 @@ async function updateTestEventInDB(testMetaData: any) {
         result: testMetaData.test_run.result,
         finished_at: testMetaData.test_run.started_at,
         finished_event_doc: JSON.stringify(testMetaData),
+        hooks: JSON.stringify(testMetaData.test_run.hooks)
       },
     });
     log.info('TestRunFinished event is saved to DB');
@@ -71,6 +72,7 @@ async function createHookEventInDB(testMetaData: any) {
 }
 
 async function updateHookEventInDB(testMetaData: any) {
+  const hook = testMetaData.hook_run.test_run_id?JSON.stringify([testMetaData.hook_run.test_run_id]): null;
   try {
     await prisma.testEventJournal.update({
       where: {
@@ -80,6 +82,7 @@ async function updateHookEventInDB(testMetaData: any) {
         result: testMetaData.hook_run.result,
         finished_at: testMetaData.hook_run.started_at,
         finished_event_doc: JSON.stringify(testMetaData),
+        hooks: hook
       },
     });
     log.info('HookRunFinished event is saved to DB');
@@ -89,21 +92,101 @@ async function updateHookEventInDB(testMetaData: any) {
   }
 }
 
+async function runRawQuery(query:string): Promise<Record<string, any>> {
+  return await prisma.$queryRaw`${query}`;
+}
+
 async function getBuildData(buildId: string): Promise<Record<string, any>> {
   try {
     return await prisma.$queryRaw`
-      select b.id, t.session_id, t.event_sub_type, t.name, t.scopes, t.result, t.event_uuid,  t.started_at, t.finished_at, t.file
+      select b.id, t.session_id, t.event_sub_type, t.name, t.scopes, t.result, t.event_uuid,  t.started_at, t.finished_at, t.file, t.hooks
       from Build b
       inner join session s
       on b.id = s.build_id
       inner join TestEventJournal t
       on s.id = t.session_id
-      where b.id = ${buildId} and ( LOWER(t.event_type) = 'test' or t.event_sub_type='BEFORE_ALL' or t.event_sub_type='AFTER_ALL');
-      `;
+      where b.id = ${buildId} and ( LOWER(t.event_type) = 'test' or t.event_sub_type='BEFORE_ALL' or t.event_sub_type='AFTER_ALL')
+      order by t.started_at asc`;
   } catch (e) {
     console.error(`Failed to fetch the test execution data for build ${buildId}`);
     throw e;
   }
+}
+
+async function getSessionLog(eventId: string) {
+  try {
+    return await prisma.$queryRaw`select *
+    from SessionLog
+    where eventId = ${eventId}
+    order by created_at asc`;
+  } catch (e) {
+    console.error(`Failed to fetch the sessionLog for eventId = ${eventId}`);
+    throw e;
+  }
+}
+
+async function getTestExecutionData(testId:string) {
+  let testEvents: Record<string, any>[] = [];
+  try {
+      const result: Record<string, any> = await prisma.$queryRaw`select t.event_uuid, t.event_sub_type, t.session_id, t.result, t.started_at, t.finished_at
+      from TestEventJournal t
+      where t.event_uuid = ${testId}
+      order by t.started_at asc`;
+      if(result.length > 0) {
+        const event = result[0];
+        event["log"] = await getSessionLog(event.event_uuid);
+        testEvents.push(event);
+      }
+    return testEvents;
+  } catch (e) {
+    console.error(`Failed to fetch the test data for ${testId}`);
+    throw e;
+  }
+}
+
+async function getBeforeEachHooks(testId: string){
+  let hookEvents: Record<string, any>[] = [];
+  try {
+    const data: Record<string, any>[] = await prisma.$queryRaw`select t.hooks
+    from TestEventJournal t
+    where t.event_uuid = ${testId}
+    order by t.started_at asc`;
+
+    const beforeHooks = JSON.parse(data[0].hooks);
+    for(const hook of beforeHooks){
+      const result: Record<string, any> = await prisma.$queryRaw`select t.event_uuid, t.event_sub_type, t.session_id, t.result, t.started_at, t.finished_at
+      from TestEventJournal t
+      where t.event_uuid = ${hook} and event_sub_type != "BEFORE_ALL"
+      order by t.started_at asc`;
+      if(result.length > 0) {
+        const event = result[0];
+        event["log"] = await getSessionLog(event.event_uuid);
+        hookEvents.push(event);
+      }
+    };
+    return hookEvents;
+  } catch (e) {
+    console.error(`Failed to fetch Before Each Hooks data for test id ${testId}`);
+    throw e;
+  }
+}
+
+async function getAfterEachHookData(testId: string) {
+  testId = `%${testId}%`;
+  try{
+    const hookEvents: Record<string, any>[] = await prisma.$queryRaw`select t.event_uuid, t.event_sub_type, t.session_id, t.result, t.started_at, t.finished_at
+    from TestEventJournal t
+    where t.hooks like ${testId} and t.event_sub_type != 'AFTER_ALL'
+    order by t.started_at asc`;  
+    for(const hook of hookEvents){
+      hook["log"] = await getSessionLog(hook.event_uuid);
+    }
+    return hookEvents;
+  } catch(err){
+    console.error(`Failed to fetch After All Hook data from test Id ${testId}`);
+    console.error(`${err}`);
+    throw err
+  }  
 }
 
 export {
@@ -112,4 +195,7 @@ export {
   createHookEventInDB,
   updateHookEventInDB,
   getBuildData,
+  getAfterEachHookData,
+  getTestExecutionData,
+  getBeforeEachHooks
 };

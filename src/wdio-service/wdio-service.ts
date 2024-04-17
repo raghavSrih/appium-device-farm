@@ -3,6 +3,9 @@ import { Request } from 'express';
 import {
   createHookEventInDB,
   createTestEventInDB,
+  getAfterEachHookData,
+  getTestExecutionData,
+  getBeforeEachHooks,
   getBuildData,
   updateHookEventInDB,
   updateTestEventInDB,
@@ -75,6 +78,7 @@ async function fetchBuildStructure(buildId: string) {
           eventType: test.event_sub_type,
           startedAt: test.started_at,
           finishedAt: test.finished_at,
+          hooks: test.hooks
         };
         events.push(event);
       }
@@ -83,6 +87,14 @@ async function fetchBuildStructure(buildId: string) {
   });
   return buildStructure;
 }
+
+async function fetchTestExecutionData(testId:string) {
+  const beforeAllHookData = await getBeforeEachHooks(testId);
+  const testExecutionData = await getTestExecutionData(testId);
+  const afterAllHookData = await getAfterEachHookData(testId);
+  return [...beforeAllHookData, ...testExecutionData, ...afterAllHookData]
+}
+
 
 async function getEventId(sessionId: string) {
   console.log(JSON.stringify(testEvents), sessionId);
@@ -97,4 +109,4 @@ function removeEventIdFromCache(obj: any, valueToRemove: string) {
   }
   return obj;
 }
-export { saveTestExecutionMetaData, fetchBuildStructure, getEventId };
+export { saveTestExecutionMetaData, fetchBuildStructure, fetchTestExecutionData, getEventId };

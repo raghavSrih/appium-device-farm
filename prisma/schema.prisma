@@ -72,4 +72,5 @@ model TestEventJournal {
   start_event_doc     String?
   finished_event_doc  String?
   file                String
+  hooks               String?
 }
