@@ -45,39 +45,41 @@ async function saveTestExecutionMetaData(args: Request) {
 
 async function fetchTestExecution(buildId: string) {
   const data = await getBuildData(buildId);
-  const testStructure: Record<string, any>[] = [];
+  const buildStructure: Record<string, any>[] = [];
   Object.keys(data).forEach((k) => {
     const test = data[k];
     const scopes = JSON.parse(test.scopes);
-    let root: any = testStructure;
+    let root: any = buildStructure;
     scopes.forEach((scope: string, index: Number) => {
       const parent = root.find((x: any) => x.name === scope);
       if (!parent) {
         let group = {
           name: scope,
+          eventType: 'DESCRIBE',
           file: test.file,
           buildId: test.id,
-          tests: [],
-          sub: [],
+          hooksAndTests: [],
+          children: [],
         };
         root.push(group);
       }
       if (index === scopes.length - 1) {
-        const tests = root.find((x: any) => x.name === scope).tests;
-        const testEvent = {
+        const events = root.find((x: any) => x.name === scope).hooksAndTests;
+        const event = {
           name: test.name,
           result: test.result,
           eventId: test.event_uuid,
+          eventType: test.event_sub_type,
           startedAt: test.started_at,
           finishedAt: test.finished_at,
           sessionId: test.session_id,
         };
-        tests.push(testEvent);
+        events.push(event);
       }
-      root = root.find((x: any) => x.name === scope).sub;
+      root = root.find((x: any) => x.name === scope).children;
     });
   });
-  return testStructure;
+  return buildStructure;
 }
 
 async function getEventId(sessionId: string) {

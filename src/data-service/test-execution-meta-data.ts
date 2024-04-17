@@ -92,13 +92,13 @@ async function updateHookEventInDB(testMetaData: any) {
 async function getBuildData(buildId: string): Promise<Record<string, any>> {
   try {
     return await prisma.$queryRaw`
-      select b.id, t.session_id, t.name, t.scopes, t.result, t.event_uuid,  t.started_at, t.finished_at, t.file
+      select b.id, t.session_id, t.event_sub_type, t.name, t.scopes, t.result, t.event_uuid,  t.started_at, t.finished_at, t.file
       from Build b
       inner join session s
       on b.id = s.build_id
       inner join TestEventJournal t
       on s.id = t.session_id
-      where b.id = ${buildId} and t.event_type = 'test';
+      where b.id = ${buildId} and ( t.event_type = 'test' or (t.event_type='hook' and (t.event_sub_type='BEFORE_ALL' or t.event_sub_type='AFTER_ALL')));
       `;
   } catch (e) {
     console.error(`Failed to fetch the test execution data for build ${buildId}`);
