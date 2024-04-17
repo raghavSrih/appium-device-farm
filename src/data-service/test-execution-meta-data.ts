@@ -98,7 +98,7 @@ async function getBuildData(buildId: string): Promise<Record<string, any>> {
       on b.id = s.build_id
       inner join TestEventJournal t
       on s.id = t.session_id
-      where b.id = ${buildId} and ( t.event_type = 'test' or (t.event_type='hook' and (t.event_sub_type='BEFORE_ALL' or t.event_sub_type='AFTER_ALL')));
+      where b.id = ${buildId} and ( LOWER(t.event_type) = 'test' or t.event_sub_type='BEFORE_ALL' or t.event_sub_type='AFTER_ALL');
       `;
   } catch (e) {
     console.error(`Failed to fetch the test execution data for build ${buildId}`);

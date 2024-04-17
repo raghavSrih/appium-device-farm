@@ -51,32 +51,34 @@ async function fetchBuildStructure(buildId: string) {
     const scopes = JSON.parse(test.scopes);
     let root: any = buildStructure;
     scopes.forEach((scope: string, index: Number) => {
-      const parent = root.find((x: any) => x.name === scope);
-      if (!parent) {
+      const parent = root.filter((x: any) => {return x.name === scope && x.file === test.file});
+      if (!parent.length) {
         let group = {
           name: scope,
           eventType: 'DESCRIBE',
           file: test.file,
+          sessionId: test.session_id,
           buildId: test.id,
           hooksAndTests: [],
           children: [],
         };
         root.push(group);
       }
+      const newRoot = root.filter((x: any) => { return x.name === scope && x.file === test.file})[0]
       if (index === scopes.length - 1) {
-        const events = root.find((x: any) => x.name === scope).hooksAndTests;
+        const events = newRoot.hooksAndTests;
         const event = {
           name: test.name,
           result: test.result,
           eventId: test.event_uuid,
+          sessionId: test.session_id,
           eventType: test.event_sub_type,
           startedAt: test.started_at,
           finishedAt: test.finished_at,
-          sessionId: test.session_id,
         };
         events.push(event);
       }
-      root = root.find((x: any) => x.name === scope).children;
+      root = newRoot.children;
     });
   });
   return buildStructure;
