@@ -3,9 +3,39 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - windows
 
 jobs:
+  buildWithSubmoduleWindows:
+    name: Run Unit Test
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        node: [20]
+
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN }}
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2.0.10
+      - name: Run script
+        run: |
+          # Add your script commands here
+          npm ci
+          npm run bundle
+      - name: Run Unit Test
+        run: |
+          # Add your script commands here
+          npm test
   buildWithSubmodule:
     name: Run Unit Test
     runs-on: macos-latest
@@ -14,28 +44,28 @@ jobs:
         node: [20]
 
     steps:
-    - name: Checkout repository with submodules
-      uses: actions/checkout@v3
-      with:
-        submodules: recursive
-        token: ${{ secrets.PAT_TOKEN }}
-    - name: Setup Java
-      uses: actions/setup-java@v3
-      with:
-        distribution: 'temurin'
-        java-version: 17
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN }}
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 17
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v2.0.10
-    - name: Run script
-      run: |
-        # Add your script commands here
-        npm ci
-        npm run bundle
-    - name: Run Unit Test
-      run: |
-        # Add your script commands here
-        npm test
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2.0.10
+      - name: Run script
+        run: |
+          # Add your script commands here
+          npm ci
+          npm run bundle
+      - name: Run Unit Test
+        run: |
+          # Add your script commands here
+          npm test
   HubWithNoPlatform:
     name: Run E2E Plugin Test
     runs-on: ubuntu-latest
@@ -88,8 +118,8 @@ jobs:
           token: ${{ secrets.PAT_TOKEN }}
       - name: Build
         run: |
-         npm ci
-         npm run bundle
+          npm ci
+          npm run bundle
 
       - name: Enable KVM
         run: |
@@ -110,7 +140,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        node: [ 20 ]
+        node: [20]
 
     steps:
       - name: Checkout repository with submodules
@@ -126,15 +156,12 @@ jobs:
         run: |
           npm run integration-ios
 
-
-
-
   E2EPluginTest:
     name: Run Plugin Test
     runs-on: macos-latest
     strategy:
       matrix:
-        node: [ 20 ]
+        node: [20]
 
     steps:
       - name: Checkout repository with submodules
@@ -160,7 +187,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        node: [ 20 ]
+        node: [20]
 
     steps:
       - name: Checkout repository with submodules
@@ -179,7 +206,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [ 20 ]
+        node: [20]
     steps:
       - name: Checkout repository with submodules
         uses: actions/checkout@v3
@@ -202,21 +229,21 @@ jobs:
         run: |
           CLOUD_USERNAME=${{ secrets.BS_USERNAME }} CLOUD_KEY=${{ secrets.BS_PASSWORD }} BS_IOS_CLOUD_APP=${{ secrets.BS_IOS_CLOUD_APP }} npm run test-parallel-ios-bs
   LambdaTest:
-   runs-on: macos-latest
-   strategy:
+    runs-on: macos-latest
+    strategy:
       matrix:
-       node: [ 20 ]
+        node: [20]
 
-   steps:
-     - name: Checkout repository with submodules
-       uses: actions/checkout@v3
-       with:
-        submodules: recursive
-        token: ${{ secrets.PAT_TOKEN }}
-     - name: Build
-       run: |
-        npm ci
-        npm run bundle
-     - name: Run LT Test
-       run: |
+    steps:
+      - name: Checkout repository with submodules
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN }}
+      - name: Build
+        run: |
+          npm ci
+          npm run bundle
+      - name: Run LT Test
+        run: |
           CLOUD_USERNAME=${{ secrets.LT_USERNAME }} CLOUD_KEY=${{ secrets.LT_PASSWORD }} LT_CLOUD_APP=${{ secrets.LT_CLOUD_APP }} npm run test-parallel-lt
