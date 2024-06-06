@@ -17,6 +17,7 @@ jobs:
       - name: Checkout repository with submodules
         uses: actions/checkout@v4
         with:
+          ref: main
           submodules: recursive
           token: ${{ secrets.PAT_TOKEN }}
       - name: Setup Java
